@@ -1,0 +1,183 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: queue
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: queue
+  template:
+    metadata:
+      labels:
+        app: queue
+    spec:
+      containers:
+      - name: queue
+        image: richardchesterwood/k8s-fleetman-queue:release2
+
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "250m"
+            memory: "512Mi"
+
+        
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: position-simulator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: position-simulator
+  template:
+    metadata:
+      labels:
+        app: position-simulator
+    spec:
+      containers:
+        - name: position-simulator
+          image: richardchesterwood/k8s-fleetman-position-simulator:release2
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: production-microservice
+            - name: SPRING_ACTIVEMQ_BROKER_URL
+              value: tcp://fleetman-queue:61616
+            - name: FLEETMAN_POSITION_QUEUE
+              value: positionQueue
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "250m"  # 1/4 CPU
+              memory: "1024Mi"   #537MB
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: position-tracker
+spec:
+  selector:
+    matchLabels:
+      app: position-tracker
+  template:
+    metadata:
+      labels:
+        app: position-tracker
+    spec:
+      containers:
+        - name: position-tracker
+          image: richardchesterwood/k8s-fleetman-position-tracker:release2
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: production-microservice
+            - name: SPRING_ACTIVEMQ_BROKER_URL
+              value: tcp://fleetman-queue:61616
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "250m"
+              memory: "1024Mi"
+    
+
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: position-tracker-v3
+# spec:
+#   selector:
+#     matchLabels:
+#       app: position-tracker-v3
+#   template:
+#     metadata:
+#       labels:
+#         app: position-tracker-v3
+#     spec:
+#       containers:
+#         - name: position-tracker
+#           image: richardchesterwood/k8s-fleetman-position-tracker:release3
+#           env:
+#             - name: SPRING_PROFILES_ACTIVE
+#               value: production-microservice
+#             - name: SPRING_ACTIVEMQ_BROKER_URL
+#               value: tcp://fleetman-queue:61616
+#           resources:
+#             requests:
+#               cpu: "100m"
+#               memory: "256Mi"
+#             limits:
+#               cpu: "250m"
+#               memory: "1024Mi"
+    
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: richardchesterwood/k8s-fleetman-api-gateway:release2
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: production-microservice
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "750m"  #0.75 CPU
+              memory: "1024Mi" #1.75GB
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-app
+  template:
+    metadata:
+      labels:
+        app: web-app
+    spec:
+      containers:
+        - name: web-app
+          image: richardchesterwood/k8s-fleetman-webapp-angular:release2
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: production-microservice
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "750m"        #`0.75 CPU
+              memory: "1024Mi"   #1.75GB
+    
